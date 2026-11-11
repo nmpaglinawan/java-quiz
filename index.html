@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Legal or Not? Java Class Names</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff;
+  --ink: #2a2522;
+  --muted: #6a625d;
+  --line: #e4dcd6;
+  --code-bg: #f4f2f0;
+  --brand: #bd582c;
+  --brand-ink: #ffffff;
+  --orange: #e48312;
+  --kw: #1b7f92;
+  --good: #2f7a45;
+  --good-bg: #e7f3ea;
+  --warn: #9a5a00;
+  --warn-bg: #fdf0dc;
+  --bad: #b0322a;
+  --bad-bg: #fbe7e5;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1d1916; --ink: #f1ebe6; --muted: #b3a89f; --line: #3a322c; --code-bg: #2a2420;
+    --brand: #e07a4a; --brand-ink: #1d1916; --orange: #f0a04a; --kw: #5cc3d4;
+    --good: #7fd197; --good-bg: #1f3326; --warn: #f2bd6b; --warn-bg: #3a2d17; --bad: #f08f86; --bad-bg: #3d2220;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1d1916; --ink: #f1ebe6; --muted: #b3a89f; --line: #3a322c; --code-bg: #2a2420;
+  --brand: #e07a4a; --brand-ink: #1d1916; --orange: #f0a04a; --kw: #5cc3d4;
+  --good: #7fd197; --good-bg: #1f3326; --warn: #f2bd6b; --warn-bg: #3a2d17; --bad: #f08f86; --bad-bg: #3d2220;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; min-height: 100%;
+  background: var(--bg); color: var(--ink);
+  font-family: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 1.0625rem; line-height: 1.5;
+}
+main { max-width: 34rem; margin: 0 auto; padding: 1.5rem 1.25rem 2rem; }
+h1 { font-size: 2rem; line-height: 1.15; margin: 0.5rem 0 0.75rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.25rem; margin: 1.75rem 0 0.5rem; }
+p { margin: 0 0 1rem; }
+.muted { color: var(--muted); }
+code, .mono { font-family: "JetBrains Mono", "Courier New", monospace; }
+
+.editor {
+  background: var(--code-bg); border-radius: 12px; padding: 1.1rem 1rem;
+  font-family: "JetBrains Mono", "Courier New", monospace; font-size: 1.05rem; line-height: 1.7;
+  overflow-x: auto; white-space: pre; margin: 1rem 0 1.25rem;
+}
+.kw { color: var(--kw); font-weight: 700; }
+.slot {
+  display: inline-block; padding: 0.05rem 0.45rem; border-radius: 6px;
+  border: 2px dashed var(--orange); color: var(--ink); font-weight: 700; white-space: pre;
+}
+.slot.good { border-style: solid; border-color: var(--good); background: var(--good-bg); }
+.slot.warn { border-style: solid; border-color: var(--warn); background: var(--warn-bg); }
+.slot.bad { border-style: solid; border-color: var(--bad); background: var(--bad-bg); text-decoration: line-through; text-decoration-thickness: 2px; }
+
+.bins { display: grid; gap: 0.6rem; }
+.bin {
+  appearance: none; width: 100%; text-align: left; cursor: pointer;
+  font: inherit; color: var(--ink); background: var(--bg);
+  border: 2px solid var(--line); border-radius: 12px; padding: 0.85rem 1rem; min-height: 3.5rem;
+  display: flex; gap: 0.75rem; align-items: center;
+}
+.bin .mark { flex: none; width: 1.9rem; height: 1.9rem; border-radius: 50%; display: grid; place-items: center; font-weight: 700; }
+.bin[data-bin="conv"] .mark { background: var(--good-bg); color: var(--good); }
+.bin[data-bin="unconv"] .mark { background: var(--warn-bg); color: var(--warn); }
+.bin[data-bin="illegal"] .mark { background: var(--bad-bg); color: var(--bad); }
+.bin strong { display: block; }
+.bin small { color: var(--muted); font-size: 0.875rem; }
+.bin:hover:not(:disabled) { border-color: var(--orange); }
+.bin:disabled { cursor: default; }
+.bin.picked-wrong { border-color: var(--bad); }
+.bin.correct { border-color: var(--good); }
+.bin:disabled:not(.correct):not(.picked-wrong) { opacity: 0.55; }
+
+button:focus-visible, input:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+.feedback { margin-top: 1rem; padding: 1rem; border-radius: 12px; background: var(--code-bg); }
+.feedback b { display: block; font-size: 1.1rem; margin-bottom: 0.25rem; }
+.feedback.right b { color: var(--good); }
+.feedback.wrong b { color: var(--bad); }
+
+.primary {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 700;
+  background: var(--brand); color: var(--brand-ink); border-radius: 12px;
+  padding: 0.9rem 1.25rem; width: 100%; min-height: 3.25rem; margin-top: 1rem;
+}
+label { display: block; font-weight: 700; margin-bottom: 0.35rem; }
+input[type="text"] {
+  width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+  border: 2px solid var(--line); border-radius: 10px; padding: 0.75rem 0.9rem;
+}
+.progress { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.95rem; }
+.track { height: 6px; background: var(--line); border-radius: 3px; margin: 0.4rem 0 0; overflow: hidden; }
+.track span { display: block; height: 100%; background: var(--orange); transition: width 0.3s; }
+
+.score { font-size: 3.5rem; font-weight: 700; line-height: 1; margin: 0.5rem 0; }
+.score small { font-size: 1.5rem; color: var(--muted); }
+.review { list-style: none; padding: 0; margin: 0; }
+.review li { border-top: 1px solid var(--line); padding: 0.8rem 0; }
+.review code { font-weight: 700; }
+.who { border: 2px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem; margin: 1rem 0; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .track span { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+
+  <section id="start">
+    <div class="editor" aria-hidden="true"><span class="kw">public class</span> <span class="slot">  ?  </span>
+{
+}</div>
+    <h1>Legal or not?</h1>
+    <p>You’ll see 17 class names. For each one, decide which bin it belongs in:</p>
+    <div class="bins" aria-hidden="true" style="margin-bottom:1.25rem">
+      <div class="bin" data-bin="conv"><span class="mark">✓</span><span><strong>Legal and conventional</strong><small>Compiles and follows Java naming style</small></span></div>
+      <div class="bin" data-bin="unconv"><span class="mark">~</span><span><strong>Legal but unconventional</strong><small>Compiles, but breaks the naming convention</small></span></div>
+      <div class="bin" data-bin="illegal"><span class="mark">✗</span><span><strong>Illegal</strong><small>Breaks an identifier rule and won’t compile</small></span></div>
+    </div>
+    <label for="name">Your name</label>
+    <input type="text" id="name" autocomplete="name" placeholder="So your teacher can see your score">
+    <button class="primary" id="startBtn" type="button">Start sorting</button>
+  </section>
+
+  <section id="play" hidden>
+    <div class="progress"><span id="count"></span><span id="tally"></span></div>
+    <div class="track"><span id="bar" style="width:0%"></span></div>
+    <div class="editor" id="code"></div>
+    <div class="bins" id="bins">
+      <button class="bin" type="button" data-bin="conv"><span class="mark">✓</span><span><strong>Legal and conventional</strong></span></button>
+      <button class="bin" type="button" data-bin="unconv"><span class="mark">~</span><span><strong>Legal but unconventional</strong></span></button>
+      <button class="bin" type="button" data-bin="illegal"><span class="mark">✗</span><span><strong>Illegal</strong></span></button>
+    </div>
+    <div class="feedback" id="feedback" aria-live="polite" hidden></div>
+    <button class="primary" id="nextBtn" type="button" hidden>Next name</button>
+  </section>
+
+  <section id="done" hidden>
+    <p class="muted">Sorting complete</p>
+    <div class="score" id="score"></div>
+    <div class="who" id="who"></div>
+    <div id="reviewWrap">
+      <h2>Review the ones you missed</h2>
+      <ul class="review" id="review"></ul>
+    </div>
+    <button class="primary" id="againBtn" type="button">Play again</button>
+  </section>
+
+</main>
+<script>
+const BINS = {
+  conv: "Legal and conventional",
+  unconv: "Legal but unconventional",
+  illegal: "Illegal"
+};
+const ITEMS = [
+  { n: "StudentRecord", b: "conv", why: "It starts with an uppercase letter and capitalizes each new word." },
+  { n: "GradeBook", b: "conv", why: "It starts with an uppercase letter and capitalizes the second word." },
+  { n: "Budget2026", b: "conv", why: "Digits are allowed anywhere except the first character." },
+  { n: "Class", b: "conv", why: "Java is case-sensitive. Only lowercase class is reserved, so Class is legal and starts with an uppercase letter. (It would still be a confusing name in real code.)" },
+  { n: "Null", b: "conv", why: "Only lowercase null is reserved. Null is legal and starts with an uppercase letter." },
+  { n: "studentRecord", b: "unconv", why: "It compiles, but class names conventionally begin with an uppercase letter." },
+  { n: "Student_Record", b: "unconv", why: "Underscores are allowed, but they aren’t used to separate words in class names." },
+  { n: "STUDENTRECORD", b: "unconv", why: "It compiles, but all-uppercase class names aren’t conventional and are hard to read." },
+  { n: "$Payroll", b: "unconv", why: "The dollar sign is allowed, but it’s discouraged in names you write yourself." },
+  { n: "_Temp", b: "unconv", why: "An identifier may start with an underscore, but class names conventionally start with an uppercase letter." },
+  { n: "2026Budget", b: "illegal", why: "A class name can’t begin with a digit." },
+  { n: "Student Record", b: "illegal", why: "A space isn’t allowed in an identifier." },
+  { n: "Grade-Book", b: "illegal", why: "A hyphen isn’t allowed. Java would read it as a minus sign." },
+  { n: "phone#", b: "illegal", why: "The number symbol (#) isn’t allowed in an identifier." },
+  { n: "goto", b: "illegal", why: "goto is a reserved keyword, even though Java doesn’t use it." },
+  { n: "true", b: "illegal", why: "true is a reserved literal value, like false and null." },
+  { n: "class", b: "illegal", why: "class is a reserved keyword." }
+];
+
+const $ = (id) => document.getElementById(id);
+let order = [], i = 0, score = 0, missed = [], answered = false;
+
+function shuffle(a) {
+  const c = a.slice();
+  for (let k = c.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [c[k], c[j]] = [c[j], c[k]]; }
+  return c;
+}
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+function begin() {
+  order = shuffle(ITEMS); i = 0; score = 0; missed = [];
+  $("start").hidden = true; $("done").hidden = true; $("play").hidden = false;
+  show();
+}
+
+function show() {
+  answered = false;
+  const it = order[i];
+  $("count").textContent = "Name " + (i + 1) + " of " + order.length;
+  $("tally").textContent = score + " correct";
+  $("bar").style.width = (i / order.length * 100) + "%";
+  $("code").innerHTML = '<span class="kw">public class</span> <span class="slot" id="slot">' + esc(it.n) + '</span>\n{\n}';
+  document.querySelectorAll("#bins .bin").forEach(btn => {
+    btn.disabled = false; btn.classList.remove("correct", "picked-wrong");
+  });
+  $("feedback").hidden = true; $("nextBtn").hidden = true;
+  $("code").scrollIntoView({ block: "nearest" });
+}
+
+function pick(bin) {
+  if (answered) return;
+  answered = true;
+  const it = order[i];
+  const right = bin === it.b;
+  if (right) score++; else missed.push({ it, bin });
+  document.querySelectorAll("#bins .bin").forEach(btn => {
+    btn.disabled = true;
+    if (btn.dataset.bin === it.b) btn.classList.add("correct");
+    else if (btn.dataset.bin === bin) btn.classList.add("picked-wrong");
+  });
+  $("slot").classList.add(it.b === "conv" ? "good" : it.b === "unconv" ? "warn" : "bad");
+  const fb = $("feedback");
+  fb.className = "feedback " + (right ? "right" : "wrong");
+  fb.innerHTML = "<b>" + (right ? "Correct!" : "Not quite. It’s " + BINS[it.b].toLowerCase() + ".") + "</b>" + esc(it.why);
+  fb.hidden = false;
+  $("tally").textContent = score + " correct";
+  const btn = $("nextBtn");
+  btn.textContent = i === order.length - 1 ? "See my score" : "Next name";
+  btn.hidden = false; btn.focus();
+}
+
+function finish() {
+  $("play").hidden = true; $("done").hidden = false;
+  $("score").innerHTML = score + " <small>/ " + order.length + "</small>";
+  const name = $("name").value.trim();
+  const when = new Date().toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  $("who").innerHTML = (name ? "<strong>" + esc(name) + "</strong><br>" : "") +
+    '<span class="muted">Finished ' + esc(when) + ". Show this screen to your teacher.</span>";
+  const list = $("review");
+  list.innerHTML = "";
+  if (missed.length === 0) {
+    $("reviewWrap").innerHTML = "<h2>Perfect sort!</h2><p>You placed every class name in the right bin.</p>";
+  } else {
+    missed.forEach(({ it, bin }) => {
+      const li = document.createElement("li");
+      li.innerHTML = "<code>" + esc(it.n) + "</code> is <strong>" + BINS[it.b].toLowerCase() +
+        "</strong> (you chose " + BINS[bin].toLowerCase() + "). " + esc(it.why);
+      list.appendChild(li);
+    });
+  }
+  window.scrollTo(0, 0);
+}
+
+$("startBtn").addEventListener("click", begin);
+$("name").addEventListener("keydown", e => { if (e.key === "Enter") begin(); });
+document.querySelectorAll("#bins .bin").forEach(btn => btn.addEventListener("click", () => pick(btn.dataset.bin)));
+$("nextBtn").addEventListener("click", () => { i++; if (i < order.length) show(); else finish(); });
+$("againBtn").addEventListener("click", () => {
+  $("reviewWrap").innerHTML = '<h2>Review the ones you missed</h2><ul class="review" id="review"></ul>';
+  begin();
+});
+</script>
+</body>
+</html>
